@@ -23,6 +23,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.SynchronousQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
+import kotlin.system.exitProcess
 
 class App {
   val greeting: String
@@ -91,7 +92,15 @@ fun main(args: Array<String>) = runBlocking {
         it
       }
     }
+    .asSequence()
+    .filter { !it.endsWith(".JPG") }
+    .filter { !it.endsWith(".PNG") }
+    .filter { !it.endsWith(".JPEG") }
+    .filter { !it.contains("vcdn.tikicdn.com") }
+
     .toMutableList()
+  println("${urls.count()}")
+  exitProcess(0)
   val initInput = urls.size
   require(urls.isNotEmpty())
 
