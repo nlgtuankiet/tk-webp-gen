@@ -188,11 +188,13 @@ suspend fun processUrl(urlInfo: UrlInfo) {
     val request = Request.Builder().url(it).build()
     val call = client.newCall(request)
     val response = call.execute()
+    val code = response.code
     response.closeQuietly()
-    call.cancel()
-    if (response.code != 200) {
-      println("error ${response.code} $url")
-      error("code ${response.code} $url")
+    if (code != 200) {
+      println("error $code $url")
+      error("code $code $url")
     }
+
+
   }
 }
