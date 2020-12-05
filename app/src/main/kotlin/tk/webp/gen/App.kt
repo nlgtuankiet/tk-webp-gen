@@ -143,6 +143,7 @@ fun main(args: Array<String>) = runBlocking {
             }
             result.isFailure -> {
               println("error ${info.url}")
+              result.exceptionOrNull()?.printStackTrace()
               errorFile.appendText("${info.url}\n")
             }
           }
