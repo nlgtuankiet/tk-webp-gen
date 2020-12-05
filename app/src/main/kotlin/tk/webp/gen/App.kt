@@ -10,14 +10,20 @@ import kotlinx.coroutines.channels.Channel.Factory.UNLIMITED
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import okhttp3.Dispatcher
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.internal.closeQuietly
+import okhttp3.internal.okHttpName
+import okhttp3.internal.threadFactory
 import okhttp3.logging.HttpLoggingInterceptor
 import java.io.File
 import java.util.concurrent.Executors
+import java.util.concurrent.SynchronousQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 
 class App {
   val greeting: String
@@ -31,6 +37,11 @@ var debug = false
 val client: OkHttpClient by lazy {
   OkHttpClient.Builder()
     .apply {
+      val dispatcher = Dispatcher()
+      dispatcher.maxRequests = Int.MAX_VALUE
+      dispatcher.maxRequestsPerHost = Int.MAX_VALUE
+      dispatcher.executorService
+      dispatcher(dispatcher)
       if (debug) {
         val logger = HttpLoggingInterceptor { message -> println("OkHttp: $message") }
         logger.level = HttpLoggingInterceptor.Level.HEADERS
@@ -48,6 +59,8 @@ data class UrlInfo(
 )
 
 val writeOutputContext = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+val ioContext = ThreadPoolExecutor(0, Int.MAX_VALUE, 60, TimeUnit.SECONDS,
+  SynchronousQueue(), threadFactory("url worker", false)).asCoroutineDispatcher()
 
 fun main(args: Array<String>) = runBlocking {
   val urlsPath = args[args.indexOf("-urls") + 1]
@@ -104,7 +117,7 @@ fun main(args: Array<String>) = runBlocking {
   println("Input $initInput urls, ${doneUrls.size} is done, ${errorUrls.size} errors, ${urls.size} to go...")
 
   repeat(worker) {
-    launch(Dispatchers.IO) {
+    launch(ioContext) {
       for (info in urlsChannel) {
         val result = runCatching {
           processUrl(info)
