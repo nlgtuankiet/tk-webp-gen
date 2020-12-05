@@ -65,6 +65,9 @@ val writeOutputContext = Executors.newSingleThreadExecutor().asCoroutineDispatch
 val ioContext = ThreadPoolExecutor(0, Int.MAX_VALUE, 60, TimeUnit.SECONDS,
   SynchronousQueue(), threadFactory("url worker", false)).asCoroutineDispatcher()
 
+
+var errorCount = 0
+
 fun main(args: Array<String>) = runBlocking {
   val urlsPath = args[args.indexOf("-urls") + 1]
   val errorPath = args[args.indexOf("-error") + 1]
@@ -146,6 +149,7 @@ fun main(args: Array<String>) = runBlocking {
             }
             result.isFailure -> {
               println("error ${info.url}")
+              errorCount++
               result.exceptionOrNull()?.printStackTrace()
               errorFile.appendText("${info.url}\n")
             }
@@ -163,7 +167,7 @@ private val sizePaths = profiles.map { listOf("cache", "h$it") }
 
 suspend fun processUrl(urlInfo: UrlInfo) {
   val percent = 100 * (urlInfo.index + 1.0) / urlInfo.total
-  println("process ${urlInfo.index + 1}/${urlInfo.total} %.2f%%".format(percent))
+  println("process ${urlInfo.index + 1}/${urlInfo.total} error: $errorCount %.2f%%".format(percent))
   val url = urlInfo.url.toHttpUrl()
   val baseUrl = HttpUrl.Builder()
     .scheme(url.scheme)
