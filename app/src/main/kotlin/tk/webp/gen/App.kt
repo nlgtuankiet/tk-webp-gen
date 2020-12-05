@@ -16,7 +16,6 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.internal.closeQuietly
-import okhttp3.internal.okHttpName
 import okhttp3.internal.threadFactory
 import okhttp3.logging.HttpLoggingInterceptor
 import java.io.File
