@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.Channel.Factory.UNLIMITED
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
@@ -52,6 +53,7 @@ fun main(args: Array<String>) = runBlocking {
   val urlsPath = args[args.indexOf("-urls") + 1]
   val errorPath = args[args.indexOf("-error") + 1]
   val done = args[args.indexOf("-done") + 1]
+  val worker = args[args.indexOf("-worker") + 1].toInt()
   debug = args.any { it == "-debug" }
   val urlFile = File(urlsPath)
 
@@ -101,20 +103,22 @@ fun main(args: Array<String>) = runBlocking {
 
   println("Input $initInput urls, ${doneUrls.size} is done, ${errorUrls.size} errors, ${urls.size} to go...")
 
-  repeat(10) {
+  repeat(worker) {
     withContext(Dispatchers.IO) {
-      for (info in urlsChannel) {
+      launch {
+        for (info in urlsChannel) {
 
-        val result = runCatching {
-          processUrl(info)
-        }
-        withContext(writeOutputContext) {
-          when {
-            result.isSuccess -> {
-              doneFile.appendText("${info.url}\n")
-            }
-            result.isFailure -> {
-              errorFile.appendText("${info.url}\n")
+          val result = runCatching {
+            processUrl(info)
+          }
+          withContext(writeOutputContext) {
+            when {
+              result.isSuccess -> {
+                doneFile.appendText("${info.url}\n")
+              }
+              result.isFailure -> {
+                errorFile.appendText("${info.url}\n")
+              }
             }
           }
         }
