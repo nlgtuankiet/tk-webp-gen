@@ -105,7 +105,6 @@ fun main(args: Array<String>) = runBlocking {
     .filter { !it.endsWith(".JPG") }
     .filter { !it.endsWith(".PNG") }
     .filter { !it.endsWith(".JPEG") }
-    .filter { !it.contains("vcdn.tikicdn.com") }
 
     .toMutableSet()
 
