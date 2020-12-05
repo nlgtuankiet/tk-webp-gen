@@ -42,6 +42,9 @@ val client: OkHttpClient by lazy {
       dispatcher.maxRequestsPerHost = Int.MAX_VALUE
       dispatcher.executorService
       dispatcher(dispatcher)
+      connectTimeout(1, TimeUnit.HOURS)
+      readTimeout(1, TimeUnit.HOURS)
+      writeTimeout(1, TimeUnit.HOURS)
       if (debug) {
         val logger = HttpLoggingInterceptor { message -> println("OkHttp: $message") }
         logger.level = HttpLoggingInterceptor.Level.HEADERS
