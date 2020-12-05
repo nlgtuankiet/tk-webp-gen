@@ -142,6 +142,7 @@ fun main(args: Array<String>) = runBlocking {
               doneFile.appendText("${info.url}\n")
             }
             result.isFailure -> {
+              println("error ${info.url}")
               errorFile.appendText("${info.url}\n")
             }
           }
