@@ -84,6 +84,7 @@ fun main(args: Array<String>) = runBlocking {
   }
   require(errorFile.isFile)
 
+  println("Reading url files...")
   val urls = urlFile.readLines().map { it.trim() }
     .filter { it.isNotEmpty() }
     .drop(1)
@@ -100,20 +101,24 @@ fun main(args: Array<String>) = runBlocking {
     .filter { !it.endsWith(".JPEG") }
     .filter { !it.contains("vcdn.tikicdn.com") }
 
-    .toMutableList()
+    .toMutableSet()
 
   val initInput = urls.size
   require(urls.isNotEmpty())
 
+  println("Reading done files...")
   val doneUrls = doneFile.readLines().map { it.trim() }
     .filter { it.isNotEmpty() }
 
+  println("Reading error files...")
   val errorUrls = errorFile.readLines().map { it.trim() }
     .filter { it.isNotEmpty() }
 
+  println("Remove done urls...")
   doneUrls.forEach {
     urls.remove(it)
   }
+  println("Remove error urls...")
   errorUrls.forEach {
     urls.remove(it)
   }
