@@ -68,9 +68,7 @@ val ioContext = ThreadPoolExecutor(0, Int.MAX_VALUE, 60, TimeUnit.SECONDS,
 
 
 var errorCount = 0
-val gen = AtomicLong()
-val hit = AtomicLong()
-val unknownCache = mutableSetOf<String>()
+val tikiCache = mutableMapOf<String?, Int>()
 
 fun main(args: Array<String>) = runBlocking {
   val urlsPath = args[args.indexOf("-urls") + 1]
@@ -170,7 +168,17 @@ private val sizePaths = profiles.map { listOf("cache", "h$it") }
 
 suspend fun processUrl(urlInfo: UrlInfo) {
   val percent = 100 * (urlInfo.index + 1.0) / urlInfo.total
-  println("process ${urlInfo.index + 1}/${urlInfo.total} error: $errorCount hit: ${hit.get()} gen ${gen.get()} unknown: ${unknownCache.toList()} %.2f%%".format(percent))
+  val line = buildString {
+    append("process ${urlInfo.index + 1}/${urlInfo.total} error: $errorCount ")
+    append("tiki-cache: ")
+    synchronized(tikiCache) {
+      tikiCache.toList().sortedBy { it.second }.forEach {
+        append("${it.first}:${it.second} ")
+      }
+    }
+    append("%.2f%%".format(percent))
+  }
+  println(line)
   val url = urlInfo.url.toHttpUrl()
   val baseUrl = HttpUrl.Builder()
     .scheme(url.scheme)
@@ -196,13 +204,11 @@ suspend fun processUrl(urlInfo: UrlInfo) {
     val call = client.newCall(request)
     val response = call.execute()
     val code = response.code
-    val tikiCache = response.headers["tiki-cache"]
-    when(tikiCache) {
-      "HIT" -> hit.incrementAndGet()
-      "MISS" -> gen.incrementAndGet()
-      else -> {
-        unknownCache.add(tikiCache ?: "")
-      }
+    val tikiCacheString = response.headers["tiki-cache"]
+    synchronized(tikiCache) {
+      val oldValue = tikiCache[tikiCacheString] ?: 0
+      val newValue = oldValue + 1
+      tikiCache[tikiCacheString] = newValue
     }
     response.closeQuietly()
     if (code != 200) {
