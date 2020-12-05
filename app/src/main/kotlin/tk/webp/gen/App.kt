@@ -104,21 +104,18 @@ fun main(args: Array<String>) = runBlocking {
   println("Input $initInput urls, ${doneUrls.size} is done, ${errorUrls.size} errors, ${urls.size} to go...")
 
   repeat(worker) {
-    withContext(Dispatchers.IO) {
-      launch {
-        for (info in urlsChannel) {
-
-          val result = runCatching {
-            processUrl(info)
-          }
-          withContext(writeOutputContext) {
-            when {
-              result.isSuccess -> {
-                doneFile.appendText("${info.url}\n")
-              }
-              result.isFailure -> {
-                errorFile.appendText("${info.url}\n")
-              }
+    launch(Dispatchers.IO) {
+      for (info in urlsChannel) {
+        val result = runCatching {
+          processUrl(info)
+        }
+        withContext(writeOutputContext) {
+          when {
+            result.isSuccess -> {
+              doneFile.appendText("${info.url}\n")
+            }
+            result.isFailure -> {
+              errorFile.appendText("${info.url}\n")
             }
           }
         }
