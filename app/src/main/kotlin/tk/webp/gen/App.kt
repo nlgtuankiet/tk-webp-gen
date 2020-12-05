@@ -210,9 +210,10 @@ suspend fun processUrl(urlInfo: UrlInfo) {
       val newValue = oldValue + 1
       tikiCache[tikiCacheString] = newValue
     }
+    val errorMessage = "error $code ${response.message} $url"
     response.closeQuietly()
     if (code != 200) {
-      println("error $code $url")
+      println(errorMessage)
       error("code $code $url")
     }
 
