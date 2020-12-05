@@ -69,7 +69,6 @@ fun main(args: Array<String>) = runBlocking {
   val worker = args[args.indexOf("-worker") + 1].toInt()
   println("done: $done")
   println("errorPath: $errorPath")
-  exitProcess(0)
   debug = args.any { it == "-debug" }
   val urlFile = File(urlsPath)
 
@@ -102,8 +101,7 @@ fun main(args: Array<String>) = runBlocking {
     .filter { !it.contains("vcdn.tikicdn.com") }
 
     .toMutableList()
-//  println("${urls.count()}")
-//  exitProcess(0)
+
   val initInput = urls.size
   require(urls.isNotEmpty())
 
