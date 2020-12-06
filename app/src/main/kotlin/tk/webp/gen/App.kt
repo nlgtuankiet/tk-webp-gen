@@ -200,8 +200,8 @@ suspend fun processUrl(urlInfo: UrlInfo) = coroutineScope {
           append("${it.first}:${it.second} ")
         }
       }
-      append("%.2f%%".format(percent))
-      append(", speed: $speedInfo")
+      append(" $speedInfo")
+      append(" %.2f%%".format(percent))
     }
     println(line)
   }
