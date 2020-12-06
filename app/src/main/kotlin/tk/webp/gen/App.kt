@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.Channel.Factory.UNLIMITED
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -19,6 +20,7 @@ import okhttp3.internal.closeQuietly
 import okhttp3.internal.threadFactory
 import okhttp3.logging.HttpLoggingInterceptor
 import java.io.File
+import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.SynchronousQueue
 import java.util.concurrent.ThreadPoolExecutor
@@ -165,20 +167,44 @@ fun main(args: Array<String>) = runBlocking {
 
 private val profiles = listOf(200, 280, 350, 400, 540, 750, 1080)
 private val sizePaths = profiles.map { listOf("cache", "h$it") }
+private val history = LinkedList<Long>()
+private val maxHistory = 15000
 
-suspend fun processUrl(urlInfo: UrlInfo) {
-  val percent = 100 * (urlInfo.index + 1.0) / urlInfo.total
-  val line = buildString {
-    append("process ${urlInfo.index + 1}/${urlInfo.total} error: $errorCount ")
-    append("tiki-cache: ")
-    synchronized(tikiCache) {
-      tikiCache.toList().sortedBy { it.second }.forEach {
-        append("${it.first}:${it.second} ")
+suspend fun processUrl(urlInfo: UrlInfo) = coroutineScope {
+  launch(ioContext) {
+    val percent = 100 * (urlInfo.index + 1.0) / urlInfo.total
+    val (min, max, total) = synchronized(history) {
+      val current = System.currentTimeMillis()
+      history.add(current)
+      while (history.size > maxHistory) {
+        history.remove()
       }
+      Triple(history.peek() ?: current, current, history.size)
     }
-    append("%.2f%%".format(percent))
+    val duration = (max - min)
+    val speedInfo = if (duration > 0) {
+      val itemPerSecond = 1.0 * total / (duration / 1000.0)
+      val itemLeft = urlInfo.total - urlInfo.index + 1
+      val secondsLeft = (itemLeft) / itemPerSecond
+      val hoursLeft = (secondsLeft / 60) / 60
+      "%.1f ips, %.2f hours left".format(itemPerSecond * 7, hoursLeft)
+    } else {
+      null
+    }
+
+    val line = buildString {
+      append("process ${urlInfo.index + 1}/${urlInfo.total} error: $errorCount ")
+      append("tiki-cache: ")
+      synchronized(tikiCache) {
+        tikiCache.toList().sortedBy { it.second }.forEach {
+          append("${it.first}:${it.second} ")
+        }
+      }
+      append("%.2f%%".format(percent))
+      append(", speed: $speedInfo")
+    }
+    println(line)
   }
-  println(line)
   val url = urlInfo.url.toHttpUrl()
   val baseUrl = HttpUrl.Builder()
     .scheme(url.scheme)
@@ -205,18 +231,16 @@ suspend fun processUrl(urlInfo: UrlInfo) {
     val response = call.execute()
     val code = response.code
     val tikiCacheString = response.headers["tiki-cache"]
+    val errorMessage = "error $code ${response.message} $url"
     synchronized(tikiCache) {
       val oldValue = tikiCache[tikiCacheString] ?: 0
       val newValue = oldValue + 1
       tikiCache[tikiCacheString] = newValue
     }
-    val errorMessage = "error $code ${response.message} $url"
     response.closeQuietly()
     if (code != 200) {
       println(errorMessage)
       error("code $code $url")
     }
-
-
   }
 }
