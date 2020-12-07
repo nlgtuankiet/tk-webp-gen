@@ -226,21 +226,30 @@ suspend fun processUrl(urlInfo: UrlInfo) = coroutineScope {
       .build()
   }
   urls.forEach {
-    val request = Request.Builder().url(it).build()
-    val call = client.newCall(request)
-    val response = call.execute()
-    val code = response.code
-    val tikiCacheString = response.headers["tiki-cache"]
-    val errorMessage = "error $code ${response.message} $url"
-    synchronized(tikiCache) {
-      val oldValue = tikiCache[tikiCacheString] ?: 0
-      val newValue = oldValue + 1
-      tikiCache[tikiCacheString] = newValue
+    var hitCount = 0
+    while (hitCount < 3) {
+      val request = Request.Builder().url(it).build()
+      val call = client.newCall(request)
+      val response = call.execute()
+      val code = response.code
+      val tikiCacheString = response.headers["tiki-cache"]?.trim()
+      val errorMessage = "error $code ${response.message} $url"
+      synchronized(tikiCache) {
+        val oldValue = tikiCache[tikiCacheString] ?: 0
+        val newValue = oldValue + 1
+        tikiCache[tikiCacheString] = newValue
+      }
+      response.closeQuietly()
+      if (code != 200) {
+        println(errorMessage)
+        error("code $code $url")
+      }
+      if (code == 200 && tikiCacheString == "HIT") {
+        hitCount++
+      } else {
+        hitCount = 0
+      }
     }
-    response.closeQuietly()
-    if (code != 200) {
-      println(errorMessage)
-      error("code $code $url")
-    }
+
   }
 }
