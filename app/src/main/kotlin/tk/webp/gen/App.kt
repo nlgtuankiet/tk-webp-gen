@@ -187,7 +187,7 @@ suspend fun processUrl(urlInfo: UrlInfo) = coroutineScope {
       val itemLeft = urlInfo.total - urlInfo.index + 1
       val secondsLeft = (itemLeft) / itemPerSecond
       val hoursLeft = (secondsLeft / 60) / 60
-      "%.1f ips %.2fh left".format(itemPerSecond * 7, hoursLeft)
+      "%.1f ips %.1fh left".format(itemPerSecond * 7, hoursLeft)
     } else {
       null
     }
