@@ -187,14 +187,13 @@ suspend fun processUrl(urlInfo: UrlInfo) = coroutineScope {
       val itemLeft = urlInfo.total - urlInfo.index + 1
       val secondsLeft = (itemLeft) / itemPerSecond
       val hoursLeft = (secondsLeft / 60) / 60
-      "%.1f ips %.2f hours left".format(itemPerSecond * 7, hoursLeft)
+      "%.1f ips %.2fh left".format(itemPerSecond * 7, hoursLeft)
     } else {
       null
     }
 
     val line = buildString {
-      append("process ${urlInfo.index + 1}/${urlInfo.total} error: $errorCount ")
-      append("tiki-cache: ")
+      append("p ${urlInfo.index + 1}/${urlInfo.total} e: $errorCount ")
       synchronized(tikiCache) {
         tikiCache.toList().sortedBy { it.second }.forEach {
           append("${it.first}:${it.second} ")
