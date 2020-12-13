@@ -214,7 +214,8 @@ suspend fun processUrl(urlInfo: UrlInfo) = coroutineScope {
         }
         if (analyticEntriesCopy.isNotEmpty()) {
           appendLine()
-          println("count: ")
+
+          append("count: ")
           analyticEntriesCopy.groupBy { it.cache }.toSortedMap().forEach { (t, u) ->
             append("`$t`-`${u.size}` ")
           }
@@ -223,7 +224,7 @@ suspend fun processUrl(urlInfo: UrlInfo) = coroutineScope {
             appendLine()
             val tpxx = analyticEntriesCopy.percentileBy(it.toDouble(), { it.cache }, { it.ttfb }).toSortedMap()
             append("tp$it: ")
-            tpxx.forEach { (t, u) -> append("`$t`-`${u.toInt()}` ") }
+            tpxx.forEach { (t, u) -> append("`$t`-`${u.toInt()}ms` ") }
           }
           appendLine()
 
