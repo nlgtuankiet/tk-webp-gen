@@ -225,11 +225,13 @@ suspend fun processUrl(urlInfo: UrlInfo) = coroutineScope {
             .averageBy(keySelector = { it.cache }, longSelector = {it.ttfb}).toSortedMap()
           append("avg: ")
           avg.forEach { (t, u) -> append("`$t`-`${u.toInt()}` ") }
+          appendLine()
 
           val median = analyticEntriesCopy.asSequence()
             .medianBy(keySelector = { it.cache },valueSelector = {it.ttfb}).toSortedMap()
           append("median: ")
           median.forEach { (t, u) -> append("`$t`-`${u.toInt()}` ") }
+          appendLine()
         }
       }
     }
