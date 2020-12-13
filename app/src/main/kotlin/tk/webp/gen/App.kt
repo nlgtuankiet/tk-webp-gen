@@ -268,7 +268,7 @@ suspend fun processUrl(urlInfo: UrlInfo) = coroutineScope {
     var hitCount = 0
     var tryCount = 0
     var isFirst = true
-    while (hitCount < 3) {
+    while (hitCount < 4) {
       tryCount++
       if (tryCount > 100) {
         error("try count > 100")
