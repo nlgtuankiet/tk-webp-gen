@@ -247,9 +247,13 @@ suspend fun processUrl(urlInfo: UrlInfo) = coroutineScope {
   }
   urls.forEach {
     var hitCount = 0
+    var tryCount = 0
     var isFirst = true
     while (hitCount < 3) {
-
+      tryCount++
+      if (tryCount > 100) {
+        error("try count > 100")
+      }
       val request = Request.Builder().url(it).build()
       val call = client.newCall(request)
       val response = call.execute()
