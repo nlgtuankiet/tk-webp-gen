@@ -3,7 +3,6 @@
  */
 package tk.webp.gen
 
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.Channel.Factory.UNLIMITED
@@ -19,14 +18,14 @@ import okhttp3.Request
 import okhttp3.internal.closeQuietly
 import okhttp3.internal.threadFactory
 import okhttp3.logging.HttpLoggingInterceptor
+import org.nield.kotlinstatistics.averageBy
+import org.nield.kotlinstatistics.percentileBy
 import java.io.File
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.SynchronousQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicLong
-import kotlin.system.exitProcess
 
 class App {
   val greeting: String
@@ -71,12 +70,14 @@ val ioContext = ThreadPoolExecutor(0, Int.MAX_VALUE, 60, TimeUnit.SECONDS,
 
 var errorCount = 0
 val tikiCache = mutableMapOf<String?, Int>()
+var analyze = false
 
 fun main(args: Array<String>) = runBlocking {
   val urlsPath = args[args.indexOf("-urls") + 1]
   val errorPath = args[args.indexOf("-error") + 1]
   val done = args[args.indexOf("-done") + 1]
   val worker = args[args.indexOf("-worker") + 1].toInt()
+  analyze = args.contains("-analyze")
   println("done: $done")
   println("errorPath: $errorPath")
   debug = args.any { it == "-debug" }
@@ -170,6 +171,10 @@ private val sizePaths = profiles.map { listOf("cache", "h$it") }
 private val history = LinkedList<Long>()
 private val maxHistory = 15000
 
+data class AnalyticEntry(val cache: String, val ttfb: Long)
+
+private val analyticEntries = mutableListOf<AnalyticEntry>()
+
 suspend fun processUrl(urlInfo: UrlInfo) = coroutineScope {
   launch(ioContext) {
     val percent = 100 * (urlInfo.index + 1.0) / urlInfo.total
@@ -201,6 +206,22 @@ suspend fun processUrl(urlInfo: UrlInfo) = coroutineScope {
       }
       append("$speedInfo")
       append(" | %.2f%%".format(percent))
+      if (analyze) {
+        val analyticEntriesCopy = synchronized(analyticEntries) {
+          analyticEntries.toList()
+        }
+        if (analyticEntriesCopy.isNotEmpty()) {
+          appendLine()
+          val tp95 = analyticEntriesCopy.percentileBy(95.0, { it.cache }, { it.ttfb }).toSortedMap()
+          append("tp95: ")
+          tp95.forEach { (t, u) -> append("$t: ${u.toInt()}") }
+
+          appendLine()
+          val t80 = analyticEntriesCopy.percentileBy(80.0, { it.cache }, { it.ttfb }).toSortedMap()
+          append("tp80: ")
+          tp95.forEach { (t, u) -> append("$t: ${u.toInt()}") }
+        }
+      }
     }
     println(line)
   }
@@ -226,12 +247,22 @@ suspend fun processUrl(urlInfo: UrlInfo) = coroutineScope {
   }
   urls.forEach {
     var hitCount = 0
+    var isFirst = true
     while (hitCount < 3) {
       val request = Request.Builder().url(it).build()
       val call = client.newCall(request)
       val response = call.execute()
+
+
       val code = response.code
       val tikiCacheString = response.headers["tiki-cache"]?.trim()
+      if (isFirst) {
+        isFirst = false
+        val ttfb = response.receivedResponseAtMillis - response.sentRequestAtMillis
+        synchronized(analyticEntries) {
+          analyticEntries.add(AnalyticEntry(tikiCacheString ?: "", ttfb))
+        }
+      }
       val errorMessage = "error $code ${response.message} $url"
       synchronized(tikiCache) {
         val oldValue = tikiCache[tikiCacheString] ?: 0
