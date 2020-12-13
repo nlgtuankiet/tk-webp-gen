@@ -249,6 +249,7 @@ suspend fun processUrl(urlInfo: UrlInfo) = coroutineScope {
     var hitCount = 0
     var isFirst = true
     while (hitCount < 3) {
+      println("process url: $it ${hitCount}")
       val request = Request.Builder().url(it).build()
       val call = client.newCall(request)
       val response = call.execute()
