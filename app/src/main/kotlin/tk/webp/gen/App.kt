@@ -279,11 +279,13 @@ suspend fun processUrl(urlInfo: UrlInfo) = coroutineScope {
       val code = response.code
       val tikiCacheString = response.headers["tiki-cache"]?.trim()
       if (isFirst && analyze) {
-        isFirst = false
         val ttfb = response.receivedResponseAtMillis - response.sentRequestAtMillis
         synchronized(analyticEntries) {
           analyticEntries.add(AnalyticEntry(tikiCacheString ?: "", ttfb))
         }
+      }
+      if (isFirst) {
+        isFirst = false
       }
       val errorMessage = "error $code ${response.message} $url"
       synchronized(tikiCache) {
