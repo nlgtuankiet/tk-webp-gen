@@ -216,7 +216,7 @@ suspend fun processUrl(urlInfo: UrlInfo) = coroutineScope {
           appendLine()
           println("count: ")
           analyticEntriesCopy.groupBy { it.cache }.toSortedMap().forEach { (t, u) ->
-            append("`$t`-`${u.size}` ") }
+            append("`$t`-`${u.size}` ")
           }
 
           listOf(99, 95, 80, 50, 5).forEach {
