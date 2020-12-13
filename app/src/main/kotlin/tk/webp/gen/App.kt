@@ -213,6 +213,12 @@ suspend fun processUrl(urlInfo: UrlInfo) = coroutineScope {
           analyticEntries.toList()
         }
         if (analyticEntriesCopy.isNotEmpty()) {
+          appendLine()
+          println("count: ")
+          analyticEntriesCopy.groupBy { it.cache }.toSortedMap().forEach { (t, u) ->
+            append("`$t`-`${u.size}` ") }
+          }
+
           listOf(99, 95, 80, 50, 5).forEach {
             appendLine()
             val tpxx = analyticEntriesCopy.percentileBy(it.toDouble(), { it.cache }, { it.ttfb }).toSortedMap()
