@@ -268,7 +268,7 @@ suspend fun processUrl(urlInfo: UrlInfo) = coroutineScope {
     var hitCount = 0
     var tryCount = 0
     var isFirst = true
-    while (hitCount < 4) {
+    while (isFirst) {
       tryCount++
       if (tryCount > 100) {
         error("try count > 100")
@@ -278,7 +278,7 @@ suspend fun processUrl(urlInfo: UrlInfo) = coroutineScope {
       val response = call.execute()
       val code = response.code
       val tikiCacheString = response.headers["tiki-cache"]?.trim()
-      if (isFirst) {
+      if (isFirst && analyze) {
         isFirst = false
         val ttfb = response.receivedResponseAtMillis - response.sentRequestAtMillis
         synchronized(analyticEntries) {
