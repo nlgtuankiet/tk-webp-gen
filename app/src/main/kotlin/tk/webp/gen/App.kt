@@ -101,13 +101,6 @@ fun main(args: Array<String>) = runBlocking {
   val urls = urlFile.readLines().map { it.trim() }
     .filter { it.isNotEmpty() }
     .drop(1)
-    .let {
-      if (debug) {
-        (it.take(10))
-      } else {
-        it
-      }
-    }
     .asSequence()
     .filter { !it.endsWith(".JPG") }
     .filter { !it.endsWith(".PNG") }
