@@ -249,14 +249,13 @@ suspend fun processUrl(urlInfo: UrlInfo) = coroutineScope {
     var hitCount = 0
     var isFirst = true
     while (hitCount < 3) {
-      println("process url: $it ${hitCount}")
+
       val request = Request.Builder().url(it).build()
       val call = client.newCall(request)
       val response = call.execute()
-
-
       val code = response.code
       val tikiCacheString = response.headers["tiki-cache"]?.trim()
+      println("process url: $it ${hitCount} $tikiCacheString")
       if (isFirst) {
         isFirst = false
         val ttfb = response.receivedResponseAtMillis - response.sentRequestAtMillis
