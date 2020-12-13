@@ -3,6 +3,7 @@
  */
 package tk.webp.gen
 
+import averageBy
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.Channel.Factory.UNLIMITED
@@ -19,6 +20,7 @@ import okhttp3.internal.closeQuietly
 import okhttp3.internal.threadFactory
 import okhttp3.logging.HttpLoggingInterceptor
 import org.nield.kotlinstatistics.averageBy
+import org.nield.kotlinstatistics.medianBy
 import org.nield.kotlinstatistics.percentileBy
 import java.io.File
 import java.util.*
@@ -211,15 +213,23 @@ suspend fun processUrl(urlInfo: UrlInfo) = coroutineScope {
           analyticEntries.toList()
         }
         if (analyticEntriesCopy.isNotEmpty()) {
+          listOf(99, 95, 80, 50).forEach {
+            appendLine()
+            val tpxx = analyticEntriesCopy.percentileBy(it.toDouble(), { it.cache }, { it.ttfb }).toSortedMap()
+            append("tp$it: ")
+            tpxx.forEach { (t, u) -> append("`$t`-`${u.toInt()}` ") }
+          }
           appendLine()
-          val tp95 = analyticEntriesCopy.percentileBy(95.0, { it.cache }, { it.ttfb }).toSortedMap()
-          append("tp95: ")
-          tp95.forEach { (t, u) -> append("$t: ${u.toInt()}") }
 
-          appendLine()
-          val t80 = analyticEntriesCopy.percentileBy(80.0, { it.cache }, { it.ttfb }).toSortedMap()
-          append("tp80: ")
-          tp95.forEach { (t, u) -> append("$t: ${u.toInt()}") }
+          val avg = analyticEntriesCopy.asSequence()
+            .averageBy(keySelector = { it.cache }, longSelector = {it.ttfb}).toSortedMap()
+          append("avg: ")
+          avg.forEach { (t, u) -> append("`$t`-`${u.toInt()}` ") }
+
+          val median = analyticEntriesCopy.asSequence()
+            .medianBy(keySelector = { it.cache },valueSelector = {it.ttfb}).toSortedMap()
+          append("median: ")
+          median.forEach { (t, u) -> append("`$t`-`${u.toInt()}` ") }
         }
       }
     }
